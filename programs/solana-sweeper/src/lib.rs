@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, Transfer, CloseAccount};
-use std::str::FromStr;
 
-declare_id!("G68yXrhYqYojo18AFkY4oaBcUqogZXz52C48imEJ6W5s");
+declare_id!("CUmkM8MtH2xVap6jZDHUpHA6MHFUC6cwqLydzJAPcWhd");
 
 #[account]
 pub struct GlobalState {
@@ -15,14 +14,14 @@ pub struct GlobalState {
 pub mod solana_sweeper {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, authorized_bot: Pubkey) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         // Check if already initialized
         if ctx.accounts.global_state.initialized {
             return Err(CustomError::AlreadyInitialized.into());
         }
 
         // Set authorized bot, vault and mark as initialized
-        ctx.accounts.global_state.authorized_bot = authorized_bot;
+        ctx.accounts.global_state.authorized_bot = ctx.accounts.authorized_bot.key();
         ctx.accounts.global_state.vault = ctx.accounts.vault.key();
         ctx.accounts.global_state.initialized = true;
 
@@ -79,11 +78,14 @@ pub mod solana_sweeper {
                 continue;
             }
 
-            // Prepare PDA seeds
+            // Prepare PDA seeds - include vault as one of the seeds
             let id_str = &user_ids[i];
             let id_bytes = id_str.as_bytes();
+            let vault_key = ctx.accounts.vault.key();
+            let vault_bytes = vault_key.as_ref();
             let seeds = &[
                 b"user_deposit",
+                vault_bytes,
                 id_bytes,
                 &[bumps[i]],
             ];
@@ -140,11 +142,14 @@ pub mod solana_sweeper {
             let user_token_account = &ctx.remaining_accounts[i * 2];
             let pda_account = &ctx.remaining_accounts[i * 2 + 1];
 
-            // Prepare PDA seeds
+            // Prepare PDA seeds - include vault as one of the seeds
             let id_str = &user_ids[i];
             let id_bytes = id_str.as_bytes();
+            let vault_key = ctx.accounts.vault.key();
+            let vault_bytes = vault_key.as_ref();
             let seeds = &[
                 b"user_deposit",
+                vault_bytes,
                 id_bytes,
                 &[bumps[i]],
             ];
@@ -191,6 +196,9 @@ pub struct Initialize<'info> {
     /// CHECK: This is a vault account
     #[account(mut)]
     pub vault: AccountInfo<'info>,
+    
+    /// CHECK: This is the authorized bot account
+    pub authorized_bot: AccountInfo<'info>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
