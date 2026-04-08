@@ -186,7 +186,7 @@ pub mod solana_sweeper {
 pub struct Initialize<'info> {
     #[account(
         init, 
-        payer = admin, 
+        payer = signer,
         space = 8 + 32 + 32 + 1,
         seeds = [b"global_state", vault.key.as_ref()],
         bump
@@ -201,7 +201,7 @@ pub struct Initialize<'info> {
     pub authorized_bot: AccountInfo<'info>,
     
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
